@@ -1,201 +1,202 @@
 # Registro de pruebas · SnackCheck
 
-Este documento reúne los casos de prueba del flujo n8n SnackCheck y el espacio para registrar sus ejecuciones. Cubre pruebas **funcionales, de integración, de error y de rendimiento**, con identificadores `TC-XXX`.
+**Campaña ejecutada el 25 de octubre de 2026.** Este documento recoge resultados observados, entradas utilizadas, criterios de comprobación y evidencias. Cubre pruebas funcionales, de integración, de error y de rendimiento mediante identificadores `TC-XXX`.
 
-**Estado inicial: todos los casos están pendientes de ejecución.** Los resultados esperados se deducen de la exportación revisada y del [README](../README.md); no son resultados observados. No se han realizado llamadas al webhook ni a los servicios externos para preparar este registro.
+La campaña combina la ejecución del JavaScript original de los nodos Code con peticiones reales al flujo publicado en n8n. Las pruebas aisladas no se presentan como ejecuciones del motor n8n. No se ha modificado el flujo durante las pruebas.
 
-## Control del documento
+## 1. Resumen de resultados
 
-| Campo | Valor |
+| Categoría | Casos ejecutados | Aprobados en el alcance indicado | Limitación confirmada | Medidos con incidencia |
+| --- | ---: | ---: | ---: | ---: |
+| Funcional | 12 | 12 | 0 | 0 |
+| Integración | 1 | 1 | 0 | 0 |
+| Error | 4 | 3 | 1 | 0 |
+| Rendimiento | 3 | 1 | 0 | 2 |
+| **Total** | **20** | **17** | **1** | **2** |
+
+- **Aprobado:** el resultado observado coincide con el criterio descrito para ese caso y su alcance.
+- **Limitación confirmada:** se ha reproducido un comportamiento problemático conocido; no significa que esté corregido.
+- **Medido con incidencia:** se ha ejecutado la carga y registrado sus métricas, pero se han observado respuestas de error para una entrada que previamente funcionaba. No hay un objetivo de latencia acordado para declarar aprobado el rendimiento.
+
+Los 13 casos de nodos Code comprenden **36 variantes diferentes, todas satisfactorias**. La suite HTTP principal contiene **71 peticiones**: 8 de integración y error, 3 de calentamiento, 20 secuenciales, 20 con concurrencia máxima 2 y 20 de rechazo temprano. Además, se hicieron dos comprobaciones iniciales de URLs y una repetición del caso de producto inexistente. Las consultas directas a Open Food Facts se conservan como evidencia de los datos externos.
+
+Los identificadores se mantienen respecto del plan inicial; los saltos de numeración corresponden a casos no incluidos en esta campaña. El alcance real de cada caso se precisa aquí, especialmente para las comprobaciones de NutriScore, que se ejecutaron como código aislado.
+
+## 2. Entorno y trazabilidad
+
+| Elemento | Valor observado o utilizado |
 | --- | --- |
-| Fecha de preparación | 2026-10-25 |
-| Versión de referencia | `0.1.0`, asignada como base documental en el [CHANGELOG](../CHANGELOG.md) |
-| Flujo de referencia | Exportación `SnackCheck`, recibida como `Texto pegado.txt` |
-| Commit o hash del JSON ejecutado | Pendiente de registrar |
-| Responsable de ejecución | Pendiente de registrar |
-| Versión de n8n | Pendiente de registrar |
-| Entorno y URL del webhook | Pendiente de registrar |
-| Modelo configurado | Groq `openai/gpt-oss-20b` |
+| Fecha | 2026-10-25 |
+| Hora de inicio de la suite HTTP | 17:27:21, Europe/Madrid; 16:27:21 UTC |
+| Versión documental | `0.1.1`, véase [CHANGELOG](../CHANGELOG.md) |
+| Flujo fuente | Exportación `SnackCheck`, recibida como `Texto pegado.txt` |
+| SHA-256 del archivo fuente usado en pruebas de código | `099b1ec7454db41f0df60526e038a4a8bcea26e4bd5c1b50ca20004f0123c71b` |
+| Entorno de los nodos Code aislados | Node.js `v24.21.0`, Windows |
+| Webhook de pruebas facilitado | `http://localhost:5678/webhook-test/nutrition-check` |
+| Respuesta inicial de esa URL | HTTP 404: webhook no registrado; n8n indicaba activar la escucha |
+| Webhook usado en la campaña | `http://localhost:5678/webhook/nutrition-check` |
+| Servicios del recorrido HTTP | Flujo publicado con consulta a Open Food Facts y generación del mensaje; sin sustituciones de prueba |
+| Modelo en la exportación analizada | Groq `openai/gpt-oss-20b` |
+| Versión global de n8n e identificadores internos de ejecución | No capturados; las evidencias HTTP no contienen esos datos |
 
-## Resumen de ejecución
+El hash identifica el archivo analizado, no acredita que la versión publicada en n8n sea idéntica byte a byte. Las respuestas de producción son compatibles con los recorridos documentados, pero no se ha exportado de nuevo la instancia ni inspeccionado sus ejecuciones internas. La configuración del modelo se conoce por el JSON, no por una cabecera de la respuesta HTTP.
 
-| Categoría | Casos definidos | Ejecutados | Aprobados | Fallidos | Bloqueados | Pendientes |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Funcional | 16 | 0 | 0 | 0 | 0 | 16 |
-| Integración | 6 | 0 | 0 | 0 | 0 | 6 |
-| Error | 10 | 0 | 0 | 0 | 0 | 10 |
-| Rendimiento | 3 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **35** | **0** | **0** | **0** | **0** | **35** |
+### Evidencias
 
-Algunos casos incluyen varias variantes. El resumen cuenta identificadores, no peticiones ni variantes. Un caso parametrizado solo se aprueba cuando se han ejecutado y aprobado todas sus variantes; conserva el detalle de cada una.
+| Referencia | Archivo y contenido |
+| --- | --- |
+| E01 | [Primera ejecución de código y comprobación de Test URL](evidencias/ejecucion-2026-10-25T16-24-57-284Z.json): 36 variantes y respuesta 404 de la URL de pruebas. |
+| E02 | [Pruebas de código y primera respuesta de producción](evidencias/ejecucion-2026-10-25T16-25-30-941Z.json): entradas, resultados esperados y observados, hash y respuesta HTTP 200. |
+| E03 | [Campaña HTTP y rendimiento](evidencias/http-2026-10-25T16-27-21-234Z.json): cada petición, body, status, cuerpo de respuesta, fecha y duración, más consulta directa a Open Food Facts. |
+| E04 | [Verificación y repetición de producto ausente](evidencias/comprobacion-producto-ausente.json): existencia del primer candidato, ausencia verificada del segundo y respuesta del webhook. |
 
-Estados permitidos:
+Son archivos de evidencia real generados durante la campaña. Las credenciales no se incluyen. En E02, localizar `pruebas` por `id`; en E03, localizar `requests` por `id` y `phase`. Los valores de duración originales están expresados en milisegundos, sin redondear.
 
-- **Pendiente:** aún no ejecutado.
-- **Aprobado:** ejecución respaldada por evidencia y conforme al resultado esperado.
-- **Fallido:** ejecución completada con una diferencia frente al resultado esperado.
-- **Bloqueado:** no se puede completar por falta de entorno, credenciales u otra dependencia; registrar el motivo.
+## 3. Método
 
-Una prueba de caracterización puede aprobarse al confirmar una limitación conocida. Eso **no significa que el defecto esté corregido**. Los casos exploratorios sin criterio de aceptación deben conservar sus mediciones y quedar pendientes de evaluación, sin presentarse como aprobados.
+### Pruebas de código
 
-## Preparación y procedimiento
+Se extrajo el contenido `jsCode` de los dos nodos originales, sin reescribir sus reglas. El programa de pruebas ejecuta esas funciones en Node.js y compara su salida con valores esperados mediante aserciones. Para NutriScore, se proporciona un contexto controlado que representa la referencia a `Obtener - Valores nutricionales`.
 
-1. Importa una copia del flujo y configura su credencial Groq. Registra la versión de n8n, el commit o hash del JSON y la URL de pruebas.
-2. Para pruebas por HTTP, pon el Webhook a la escucha y envía un POST con `Content-Type: application/json`. Guarda código HTTP, cabeceras, cuerpo, duración e identificador de ejecución de n8n.
-3. Para pruebas de reglas, utiliza datos controlados en esa copia. Puedes fijar la salida de `API - Consultamos información de barcode` para ejecutar manualmente el tramo posterior. Mantén el nodo `Obtener - Valores nutricionales` y su nombre: el cálculo de NutriScore lo referencia directamente.
-4. Las pruebas aisladas de un nodo Code o IF no acreditan una respuesta HTTP. Identifícalas como pruebas de nodo y registra su entrada y salida, sin atribuirles un estado HTTP que no se haya observado.
-5. Las pruebas con datos fijados no acreditan una integración real. Para probar el recorrido completo por HTTP con datos simulados, prepara una copia con una fuente de respuestas controladas y registra la modificación. No des por hecho que los datos fijados del editor se aplican a las ejecuciones de producción.
-6. Para las integraciones reales, retira los datos fijados y las sustituciones de prueba. Conserva la respuesta de Open Food Facts observada: sus datos pueden cambiar.
-7. Rellena la ficha de ejecución al final del documento, actualiza el estado de la tabla y el resumen. Guarda evidencias sin API keys, cabeceras de autorización ni otros secretos.
+Esto comprueba el JavaScript de clasificación y de validación. No comprueba el enlazado de ítems, los nodos Set/IF/Merge, la importación ni las conversiones previas del motor n8n. Los casos TC-010 a TC-013 verifican `clasificacionNutriScore`; no se atribuye a estas pruebas la ejecución del Set que la copia a `valorNutriScore`.
 
-### Datos controlados de referencia
+### Pruebas HTTP
 
-Respuesta simulada de Open Food Facts, creada exclusivamente para las pruebas:
+Se enviaron peticiones POST con `Content-Type: application/json` a la ruta de producción local. Se capturaron status, tipo de contenido, cuerpo y duración desde el envío hasta la recepción completa. No se usaron datos fijados ni servicios simulados en estas peticiones.
+
+La respuesta satisfactoria se contrastó con una consulta directa a Open Food Facts. Las causas internas de los errores no se deducen solamente del status HTTP: cuando no hay evidencia de la causa, se declara expresamente.
+
+## 4. Pruebas funcionales ejecutadas
+
+Las ternas representan `(azúcar, sal, grasa)` en g/100 g y se introducen como `sugar`, `salt` y `fat` en el nodo Code.
+
+| ID | Entrada y variantes | Resultado esperado | Resultado observado | Estado | Evidencia |
+| --- | --- | --- | --- | --- | --- |
+| TC-002 | `(5, 0.5, 5)` | Puntuación 0; saludable; 🟢. | Coinciden puntuación, clasificación, emoji y nutrientes devueltos. | Aprobado | E02 |
+| TC-003 | `(22.51, 0.5, 5)` | Puntuación 1; moderado; 🟠. | Coincide. | Aprobado | E02 |
+| TC-004 | `(5, 1.51, 5)` | Puntuación 1; moderado; 🟠. | Coincide. | Aprobado | E02 |
+| TC-005 | `(5, 0.5, 17.51)` | Puntuación 1; moderado; 🟠. | Coincide. | Aprobado | E02 |
+| TC-006 | `(23, 2, 5)`, `(23, 0.5, 18)`, `(5, 2, 18)` | Puntuación 2; no saludable; 🔴 en las tres variantes. | Coincide en 3/3. | Aprobado | E02 |
+| TC-007 | `(23, 2, 18)` | Puntuación 3; no saludable; 🔴. | Coincide. | Aprobado | E02 |
+| TC-008 | `(22.5, 1.5, 17.5)` y tres variantes elevando solo un valor en `0.01`. | Puntuación 0 en la igualdad; 1 al superar un único umbral. | Coincide en 4/4. Confirma comparaciones estrictamente mayores. | Aprobado | E02 |
+| TC-009 | `(0, 0, 0)` | Ceros aceptados; puntuación 0; saludable. | Coincide, sin excepción. | Aprobado | E02 |
+| TC-010 | NutriScore `a`, `b`. | `clasificacionNutriScore: saludable`. | Coincide en 2/2; se conserva el campo de entrada usado como marcador. | Aprobado | E02 |
+| TC-011 | NutriScore `c`. | `clasificacionNutriScore: moderado`. | Coincide. | Aprobado | E02 |
+| TC-012 | NutriScore `d`, `e`. | `clasificacionNutriScore: no saludable`. | Coincide en 2/2. | Aprobado | E02 |
+| TC-013 | NutriScore `" A "`, `"C"`, `" e "`. | Saludable, moderado y no saludable, respectivamente. | Coincide en 3/3; normaliza mayúsculas y espacios. | Aprobado | E02 |
+
+**Resultado funcional:** 21 variantes satisfactorias en 12 casos. La matriz completa de combinación de clasificaciones y todas las ramas del Merge no se han ejecutado de forma controlada en esta campaña.
+
+## 5. Prueba de integración ejecutada
+
+### TC-021 · Consulta de producto y respuesta final por HTTP
+
+**Entrada:**
 
 ```json
-{
-  "status": 1,
-  "product": {
-    "product_name": "Producto sintético de prueba",
-    "brands": "Marca de prueba",
-    "nutriscore_grade": "a",
-    "nutriments": {
-      "sugars_100g": 5,
-      "salt_100g": 0.5,
-      "fat_100g": 5
-    }
-  }
-}
+{"barcode":8480000505460}
 ```
 
-No representa un producto real ni una consulta ejecutada. En las tablas, `(azúcar, sal, grasa)` expresa gramos por 100 g. Para probar el nodo de semáforo de forma aislada, utiliza las claves `sugar`, `salt` y `fat` con esos valores.
+La consulta directa realizada durante la campaña devolvió `status: 1`, producto `Havarti light`, marca `MERCADONA`, y estos datos:
 
-## Pruebas funcionales
+| Dato | Valor observado |
+| --- | ---: |
+| Azúcares por 100 g | 1.2 |
+| Sal por 100 g | 0.0115 |
+| Grasa por 100 g | 17 |
+| NutriScore | `c` |
 
-Para estos casos se verifican reglas deterministas. La redacción del modelo se comprueba por separado en integración.
+Con las reglas exportadas, ningún nutriente supera su umbral: el semáforo por nutrientes es saludable. NutriScore `c` se clasifica como moderado. La combinación esperada es **moderado**.
 
-| ID | Caso y entrada | Procedimiento | Resultado esperado según el flujo | Resultado real / evidencia | Estado |
-| --- | --- | --- | --- | --- | --- |
-| TC-001 | Barcode numérico: `{"barcode":8480000505460}`. | Ejecutar Webhook, primer IF y nodo que guarda barcode. | IF true y `barcode` almacenado como string. No se presupone que el producto exista. | Sin ejecutar / — | Pendiente |
-| TC-002 | Ningún nutriente alto: `(5, 0.5, 5)`. | Ejecutar `Calcular - Semáforo saludable`. | `puntuacion: 0`, `clasificacion: "saludable"`, `semaforo: "🟢"`. | Sin ejecutar / — | Pendiente |
-| TC-003 | Solo azúcar alto: `(22.51, 0.5, 5)`. | Ejecutar el cálculo de semáforo. | Puntuación 1, `moderado`, 🟠. | Sin ejecutar / — | Pendiente |
-| TC-004 | Solo sal alta: `(5, 1.51, 5)`. | Ejecutar el cálculo de semáforo. | Puntuación 1, `moderado`, 🟠. | Sin ejecutar / — | Pendiente |
-| TC-005 | Solo grasa alta: `(5, 0.5, 17.51)`. | Ejecutar el cálculo de semáforo. | Puntuación 1, `moderado`, 🟠. | Sin ejecutar / — | Pendiente |
-| TC-006 | Dos altos: `(23, 2, 5)`, `(23, 0.5, 18)` y `(5, 2, 18)`. | Ejecutar las tres variantes. | Puntuación 2, `no saludable`, 🔴 en las tres. | Sin ejecutar / — | Pendiente |
-| TC-007 | Tres altos: `(23, 2, 18)`. | Ejecutar el cálculo de semáforo. | Puntuación 3, `no saludable`, 🔴. | Sin ejecutar / — | Pendiente |
-| TC-008 | Fronteras: `(22.5, 1.5, 17.5)` y tres variantes aumentando solo uno de los valores en `0.01`. | Ejecutar las cuatro variantes. | Puntuación 0 en la igualdad exacta; puntuación 1 cuando solo uno supera su umbral. | Sin ejecutar / — | Pendiente |
-| TC-009 | Ceros: `(0, 0, 0)`. | Ejecutar el cálculo de semáforo. | Valores aceptados, puntuación 0 y `saludable`. | Sin ejecutar / — | Pendiente |
-| TC-010 | NutriScore `a` y `b`. | Modificar el grado en la respuesta simulada y ejecutar desde la extracción hasta `Obtener - Dato NutriScore`. | `clasificacionNutriScore` y `valorNutriScore` iguales a `saludable`. | Sin ejecutar / — | Pendiente |
-| TC-011 | NutriScore `c`. | Ejecutar el mismo tramo. | Ambos campos iguales a `moderado`. | Sin ejecutar / — | Pendiente |
-| TC-012 | NutriScore `d` y `e`. | Ejecutar el mismo tramo para ambos grados. | Ambos campos iguales a `no saludable`. | Sin ejecutar / — | Pendiente |
-| TC-013 | Normalización: grados `" A "`, `"C"` y `" e "`. | Ejecutar el tramo de NutriScore con cada variante. | Respectivamente `saludable`, `moderado` y `no saludable`. | Sin ejecutar / — | Pendiente |
-| TC-014 | Grados textuales no clasificables: `"unknown"`, `"null"` y `""`; repetir con semáforos saludable, moderado y no saludable. | Ejecutar desde la extracción hasta el nodo que establece `respuesta`. | `valorNutriScore` es el string `"null"`; el IF correspondiente sale por true y `respuesta` conserva la etiqueta del semáforo. Verificar las nueve variantes. | Sin ejecutar / — | Pendiente |
-| TC-015 | Nueve combinaciones válidas de semáforo y NutriScore. | Usar los tres conjuntos de nutrientes indicados debajo y los grados `a`, `c`, `e`; ejecutar hasta establecer `respuesta`. | Resultados de la matriz de combinación. Basta con un `no saludable` para obtener esa respuesta. | Sin ejecutar / — | Pendiente |
-| TC-016 | Barcode `0`, `-1` y `12.5`. Caracterización de validación incompleta. | Ejecutar solo el primer IF y el guardado del código con cada número. | La comprobación de existencia numérica no rechaza estos formatos; no hay validación de longitud, positividad ni entero. No implica que Open Food Facts encuentre un producto. | Sin ejecutar / — | Pendiente |
-
-### Matriz esperada de TC-015
-
-Usa `(5, 0.5, 5)` para semáforo saludable, `(23, 0.5, 5)` para moderado y `(23, 2, 5)` para no saludable.
-
-| Semáforo por nutrientes | NutriScore `a` | NutriScore `c` | NutriScore `e` |
-| --- | --- | --- | --- |
-| Saludable | saludable | moderado | no saludable |
-| Moderado | moderado | moderado | no saludable |
-| No saludable | no saludable | no saludable | no saludable |
-
-## Pruebas de integración
-
-Los casos que dependen de servicios reales requieren credenciales y conectividad. No se debe elegir un resultado esperado a partir de una respuesta que aún no se ha obtenido.
-
-| ID | Caso y preparación | Procedimiento | Resultado esperado / criterio | Resultado real / evidencia | Estado |
-| --- | --- | --- | --- | --- | --- |
-| TC-017 | Importación y configuración. | Importar el JSON en la instancia destino, revisar los 26 nodos, las conexiones y la asignación de Groq. Registrar `typeVersion` y versión de n8n. | Sin nodos desconocidos; expresiones y conexiones conservadas; credencial asignada. No acredita aún una ejecución completa. | Sin ejecutar / — | Pendiente |
-| TC-018 | Consulta real a Open Food Facts. Preparar un barcode numérico de producto con datos, verificado en el momento de la prueba. | Invocar el webhook y conservar URL y salida del nodo HTTP. Comparar la extracción con la respuesta original. | Consulta al endpoint v2 con los cuatro campos solicitados; con `status` numérico 1 y datos completos, extracción correcta de azúcares, sal y grasa por 100 g. | Sin ejecutar / — | Pendiente |
-| TC-019 | Convergencia de las cuatro ramas en `Obtener - Respuesta`. | En una copia controlada, ejecutar los recorridos: grado `unknown` con nutrientes bajos; grado `a` con nutrientes bajos; grado `e` con nutrientes bajos; grado `c` con nutrientes bajos. | Cada recorrido llega al Merge por la entrada prevista (0, 1, 2, 3), continúa a la cadena LLM y no mezcla clasificaciones ni genera respuestas duplicadas. | Sin ejecutar / — | Pendiente |
-| TC-020 | Groq con las tres clasificaciones. | Ejecutar la cadena con `respuesta` saludable, moderado y no saludable. Conservar texto y clasificación enviados. | Texto no vacío; emoji, color y clasificación coherentes; recomendación pertinente, máximo dos frases, sin nutrientes o ingredientes inventados. No se exige una frase literal idéntica entre ejecuciones. | Sin ejecutar / — | Pendiente |
-| TC-021 | Recorrido completo satisfactorio. Fuente real y producto completo verificado. | Enviar POST; conservar ejecución, clasificaciones intermedias, salida LLM, código HTTP, cabeceras y cuerpo. | HTTP 200 al alcanzar `Responder - Respuesta final`; clasificación conforme a los datos observados. Verificar cómo se entrega `$json.text` y cualquier tratamiento HTML del entorno, sin asumir `text/plain` ni JSON. | Sin ejecutar / — | Pendiente |
-| TC-022 | Webhook de pruebas y de producción. | En la instancia de pruebas, escuchar en Test URL y enviar una petición. Después publicar/activar esa copia y enviar otra a Production URL, sin datos fijados. | Ambas URLs funcionan en su modo correspondiente; el path es `nutrition-check` y el método POST. Guardar una ejecución de cada modo. | Sin ejecutar / — | Pendiente |
-
-## Pruebas de error
-
-Estas pruebas distinguen las respuestas 400 previstas de las excepciones que el flujo no captura. Para una excepción sin respuesta propia, se espera el comportamiento de error del motor de n8n; hay que registrar el código y cuerpo reales del entorno, no inventar un JSON de error de SnackCheck.
-
-| ID | Entrada o fallo provocado | Procedimiento | Resultado esperado / caracterización | Resultado real / evidencia | Estado |
-| --- | --- | --- | --- | --- | --- |
-| TC-023 | Body `{}` y `{"barcode":null}`. | Enviar ambos POST al webhook. | Rama false inicial; HTTP 400 JSON, `status: "error"`, `code: "BARCODE_NO_EXIST"`, mensaje obligatorio y timestamp ISO. No se consulta Open Food Facts. | Sin ejecutar / — | Pendiente |
-| TC-024 | Barcode `"8480000505460"`, `"abc"`, `true` y `{}`. | Enviar cada variante y revisar el primer IF. | El tipo estricto puede detener el nodo antes de su salida false. Confirmar la incompatibilidad del ejemplo string incluido en el error y registrar excepción y HTTP reales; no presuponer el 400 personalizado. | Sin ejecutar / — | Pendiente |
-| TC-025 | Respuesta de Open Food Facts `{"status":0}` sin `error`. | Inyectar la respuesta en una copia controlada. Para medir HTTP, recorrer el webhook de esa copia. | Pasa la ausencia de `error`, falla `status == 1` y alcanza el mensaje de producto inexistente; HTTP 400 si se ejecuta por webhook. | Sin ejecutar / — | Pendiente |
-| TC-026 | Salida del nodo HTTP con `error` objeto y, en otra variante, con `error` string. | Simular `{"error":{"message":"Fallo simulado"}}` y `{"error":"Fallo simulado"}`. | Objeto: rama de producto inexistente. String: posible excepción del IF estricto de tipo objeto. Registrar la diferencia, sin considerar ambos casos equivalentes. | Sin ejecutar / — | Pendiente |
-| TC-027 | Falta de cada nutriente y objetos `nutriments` o `product` ausentes. | Con `status: 1`, quitar cada campo por separado y luego cada objeto en la respuesta simulada. Ejecutar desde la extracción. | Si la extracción produce valores ausentes, el control posterior rechaza los datos. Si falla antes, registrar el nodo y la excepción. No se garantiza que todas las variantes lleguen al 400 de datos insuficientes. | Sin ejecutar / — | Pendiente |
-| TC-028 | Valores inválidos en el Code: negativo, `null`, `""`, campo omitido y `"abc"`, aplicados a cada nutriente; los demás en valores bajos. | Inyectar los campos directamente en `Calcular - Semáforo saludable`. | Excepción `Faltan nutrientes o sus valores no son válidos`; no se calcula clasificación. Prueba aislada: no atribuir una respuesta HTTP. | Sin ejecutar / — | Pendiente |
-| TC-029 | NutriScore ausente y NutriScore JSON `null`, con nutrientes completos. | Ejecutar desde la extracción para ambas respuestas simuladas. | El control conjunto rechaza el producto por datos insuficientes; no se alcanza la rama posterior del string `"null"`. Si se recorre por webhook, HTTP 400 de datos insuficientes. | Sin ejecutar / — | Pendiente |
-| TC-030 | Credencial Groq inválida o fallo simulado del proveedor. | En una copia, usar una credencial de prueba inválida o un fallo controlado; ejecutar el recorrido hasta Groq. | La cadena falla y no alcanza la respuesta final prevista. No hay plantilla de respaldo ni respuesta personalizada para este fallo. Registrar código del proveedor y HTTP del webhook sin exponer la clave. | Sin ejecutar / — | Pendiente |
-| TC-031 | `status` de API como string `"1"`, con producto completo. | Simular la respuesta y ejecutar la comprobación de status. | La validación numérica estricta puede lanzar error de tipo; no se debe asumir la misma ruta que con `status: 1`. Registrar el comportamiento en la versión instalada. | Sin ejecutar / — | Pendiente |
-| TC-032 | Fallo real de transporte hacia Open Food Facts en entorno controlado. | En una copia, simular conexión rechazada o timeout mediante una dependencia de prueba. Ejecutar el nodo HTTP con su política de error original. | Observar la forma real de la salida de `continueRegularOutput` y su paso por el IF de error. Confirmar si termina en 400 de producto inexistente o en excepción. No dar por implementada una respuesta específica de indisponibilidad. | Sin ejecutar / — | Pendiente |
-
-En los casos TC-024, TC-026, TC-027, TC-031 y TC-032, el objetivo es caracterizar los puntos que dependen del tipo de dato o del motor. Una vez observado el comportamiento en una versión concreta, fija el resultado esperado para futuras regresiones y conserva la evidencia original.
-
-## Pruebas de rendimiento
-
-**No existen métricas medidas ni un objetivo de latencia acordado.** Los volúmenes siguientes son propuestas para una primera medición, no capacidad garantizada. Utiliza una instancia de pruebas y ajusta el volumen a los límites de los servicios y de la cuenta.
-
-| ID | Escenario y carga propuesta | Procedimiento | Métricas y criterio de evaluación | Resultado real / evidencia | Estado |
-| --- | --- | --- | --- | --- | --- |
-| TC-033 | Latencia secuencial del recorrido completo: 3 peticiones de calentamiento y 20 peticiones medidas, concurrencia 1. | Usar un producto completo verificado y servicios reales. Separar calentamiento; conservar una fila por petición y la duración de los nodos HTTP y LLM. | Mínimo, mediana, p95 y máximo; proporción de respuestas satisfactorias, errores y timeouts. Objetivo de latencia pendiente de acordar: no declarar aprobado solo por obtener mediciones. | Sin medir / — | Pendiente |
-| TC-034 | Concurrencia del recorrido: 20 peticiones con un máximo de 2 simultáneas. | Ejecutar en pruebas con dependencias controladas. Registrar cola, inicio, fin, respuesta y correlación de cada solicitud. Si se repite con servicios reales, tratarlo como una ejecución distinta. | Latencia, solicitudes completadas por segundo, errores y consumo de recursos si es accesible. Comprobar ausencia de respuestas cruzadas. No extrapolar la capacidad de los mocks a Open Food Facts o Groq; objetivo de rendimiento pendiente. | Sin medir / — | Pendiente |
-| TC-035 | Coste de rechazo temprano: 20 peticiones secuenciales con body `{}`. | Medir duración completa y revisar las ejecuciones. | Las 20 respuestas deben ser 400 con `BARCODE_NO_EXIST` y no ejecutar Open Food Facts ni Groq. Registrar mediana y p95; este criterio funcional no fija por sí mismo un umbral de velocidad aceptable. | Sin medir / — | Pendiente |
-
-### Cómo registrar las mediciones
-
-- Duración de cada petición: tiempo desde el envío hasta recibir el cuerpo completo, en milisegundos. Usar el mismo cliente y método de medición.
-- p95: ordenar las duraciones y tomar la posición `ceil(0.95 × N)`, contando desde 1. Con 20 muestras corresponde a la posición 19; es una estimación inicial con muestra pequeña.
-- No ocultar errores ni timeouts: contar todos los intentos. Calcular latencia de respuestas satisfactorias por separado e indicar cuántas muestras se excluyen de ese cálculo.
-- Rendimiento efectivo: peticiones completadas divididas por los segundos de la ventana total medida.
-- Registrar carga, concurrencia, entorno, tamaño de muestra, servicios reales o simulados, límites aplicados y hora de la prueba.
-- Antes de usar estos casos como criterio de aceptación de rendimiento, definir valores objetivo y repetir la medición bajo esas condiciones. No se inventan límites de segundos ni porcentajes de éxito.
-
-## Ficha de ejecución
-
-Copia este bloque por ejecución y variante. Sustituye `TC-XXX` por uno de los identificadores existentes; no reutilices un ID para un caso diferente. Para repetir un caso, conserva el ID y registra un número de ejecución nuevo.
+**Resultado observado:** HTTP **200**, `Content-Type: text/html; charset=utf-8`, duración **1.226,28 ms**, cuerpo:
 
 ```text
-Caso: TC-XXX
-Variante:
-Número de ejecución:
-Fecha y hora, con zona horaria:
-Responsable:
-Versión del proyecto / commit o hash del JSON:
-Versión de n8n:
-Entorno y URL:
-Alcance: nodo / tramo / webhook completo
-Dependencias: reales / simuladas (indicar cuáles)
-Preparación y cambios temporales:
-Entrada exacta o referencia al archivo:
-Resultado esperado:
-Pasos realizados:
-Resultado observado:
-HTTP, cabeceras y cuerpo (si aplica):
-Salida o error del nodo (si aplica):
-Duración y métricas (si aplica):
-ID de ejecución de n8n:
-Evidencia: ruta relativa, captura o enlace accesible
-Estado: Pendiente / Aprobado / Fallido / Bloqueado
-Motivo del estado o desviación:
-Incidencia asociada y siguiente acción:
+🟠 **NARANJA — moderado**
+
+**Recomendación:** Puedes comprarlo, pero consúmelo con moderación para mantener un equilibrio nutricional.
 ```
 
-Ubicación sugerida para futuras evidencias: `docs/evidencias/TC-001/ejecucion-01/`, adaptando el ID y el número. Esta ruta es una propuesta; no contiene evidencias aportadas con este documento.
+**Estado: Aprobado.** La clasificación, color y recomendación recibidos son coherentes con los datos externos capturados. El alcance es una comprobación de caja negra del recorrido HTTP para ese producto; no se registró la salida interna de cada nodo. Evidencia: E03, solicitud `TC-021` y campo `openfoodfacts`.
 
-## Incidencias conocidas pendientes de validar
+La primera comprobación de producción, conservada en E02, también devolvió 200 y moderado, con una redacción distinta y **1.156,60 ms**. No se exige igualdad literal entre textos del modelo.
 
-Son hallazgos de revisión estática, no fallos observados en ejecuciones:
+## 6. Pruebas de error ejecutadas
 
-| Hallazgo | Casos relacionados |
-| --- | --- |
-| El ejemplo de error usa barcode string y el primer IF espera número. | TC-001, TC-024 |
-| No hay validación completa de formato de barcode. | TC-016 |
-| Se exige NutriScore antes de permitir el fallback del string `"null"`. | TC-014, TC-029 |
-| La condición titulada «Ambos datos son NO saludable» usa OR. | TC-015 |
-| El tipo del campo `error` puede impedir alcanzar el mensaje 400. | TC-026, TC-032 |
-| Los fallos de extracción y del Code no tienen recuperación específica. | TC-027, TC-028, TC-031 |
-| No existe respuesta alternativa si falla Groq. | TC-030 |
+| ID | Entrada y procedimiento | Resultado esperado o criterio | Resultado observado | Estado | Evidencia |
+| --- | --- | --- | --- | --- | --- |
+| TC-023 | POST con `{}` y con `{"barcode":null}`. | HTTP 400, JSON con código `BARCODE_NO_EXIST`, mensaje obligatorio y timestamp. | 2/2 respuestas 400 con el JSON previsto. | Aprobado | E03 |
+| TC-024 | POST con barcode string numérico, `"abc"`, `true` y `{}`. | Caracterizar el fallo de tipo del validador estricto y comprobar si existe una respuesta controlada. | 4/4 respuestas HTTP 500 con `{"message":"Error in workflow"}`; no se obtiene el error 400 personalizado. | Limitación confirmada | E03 |
+| TC-025 | Verificar ausencia de `987654321012345` en Open Food Facts y enviar ese número al webhook. | Tras confirmar `status: 0`, respuesta de producto inexistente HTTP 400. | Fuente: HTTP 404 y `status: 0`. Webhook: HTTP 400 con el mensaje previsto. | Aprobado, tras corregir el dato de prueba | E04 |
+| TC-028 | En cada nutriente, probar negativo, `null`, cadena vacía, campo omitido y `"abc"`; mantener los otros dos válidos. Ejecutar el Code aislado. | Excepción `Faltan nutrientes o sus valores no son válidos`. | La excepción coincide en 15/15 variantes. No se mide HTTP en este caso. | Aprobado | E02 |
+
+### Trazabilidad de la corrección de TC-025
+
+El primer candidato fue `9999999999999`, que devolvió HTTP 200 y moderado. El comprobador automático de E03 lo marcó como fallido porque lo había supuesto inexistente. La consulta independiente posterior de E04 demostró que **sí existe** en Open Food Facts (`Salatgurke`, `status: 1`, NutriScore `unknown`). Por tanto, aquella expectativa era incorrecta y no demuestra un defecto del flujo.
+
+Se conserva el resultado original sin alterarlo. Se repitió la prueba con `987654321012345`, cuya ausencia se verificó antes de invocar el webhook. El estado final de TC-025 corresponde a esa repetición válida. El fallo automático inicial se excluye del recuento de defectos por ser un error en la preparación del dato de prueba.
+
+## 7. Pruebas de rendimiento ejecutadas
+
+Las mediciones usan servicios reales y el producto `8480000505460`. Son una observación de una campaña breve, no un ensayo de capacidad máxima. No se ha acordado un SLA ni se ha medido CPU, memoria o latencia de cada servicio por separado.
+
+| ID | Escenario | Respuestas observadas | Mediana | p95 | Resultado |
+| --- | --- | --- | ---: | ---: | --- |
+| TC-033 | 3 peticiones de calentamiento excluidas; después 20 secuenciales, concurrencia 1. | 8 HTTP 200 y 12 HTTP 400; 40 % de éxito en las 20 medidas. | 826,30 ms | 1.426,69 ms | Medido con incidencia |
+| TC-034 | 20 peticiones en 10 parejas, concurrencia máxima 2. | 1 HTTP 200 y 19 HTTP 400; 5 % de éxito. | 988,78 ms | 988,78 ms | Medido con incidencia |
+| TC-035 | 20 peticiones secuenciales con body `{}`. | 20 HTTP 400 con `BARCODE_NO_EXIST`, como se esperaba. | 88,35 ms | 137,29 ms | Aprobado en rechazo funcional; latencia registrada sin SLA |
+
+Para TC-033 y TC-034, las latencias de la tabla corresponden **solo a las respuestas HTTP 200**: 8 muestras y 1 muestra, respectivamente. El p95 con una única muestra no permite caracterizar la distribución. Para TC-035 se usan las 20 respuestas 400 esperadas. Los errores no se ocultan: se contabilizan por separado y sus duraciones completas permanecen en E03.
+
+Se calcula p95 ordenando las duraciones y tomando la posición `ceil(0.95 × N)`, contando desde 1. Las tres peticiones de calentamiento de TC-033 devolvieron 200 y no se incorporan a sus métricas.
+
+### Incidencia observada durante las repeticiones
+
+Las **31 respuestas HTTP 400** de TC-033 y TC-034 contenían:
+
+```text
+Upps! Parece que el  producto no existe en nuestra base de datos.
+Comprueba el código de barras o inténtalo con otro producto
+```
+
+Se trata del mismo barcode para el que se había obtenido información de Open Food Facts y respuestas 200 del webhook. La conclusión sustentada es que **el recorrido no mantuvo una respuesta satisfactoria al repetir las consultas bajo las condiciones de esta campaña**.
+
+No se puede atribuir la causa a un límite de llamadas, a Groq, a Open Food Facts o a un nodo concreto sin inspeccionar las ejecuciones de n8n. El mensaje recibido no distingue un producto inexistente de otros fallos de consulta. Las dos cargas se ejecutaron consecutivamente y comparten el estado de las dependencias; por ello, tampoco se puede atribuir la caída de éxito exclusivamente a la concurrencia.
+
+No se hicieron más ensayos de carga después de estas mediciones. Para una repetición, primero deben revisarse las ejecuciones fallidas y los límites de los servicios, y espaciar las peticiones según esos límites.
+
+## 8. Incidencias y acciones derivadas
+
+| ID | Evidencia observada | Impacto | Acción propuesta, no implementada |
+| --- | --- | --- | --- |
+| INC-001 | TC-024: cuatro entradas de tipo incorrecto producen HTTP 500. | El cliente recibe un fallo interno ante una entrada inválida; además, el ejemplo string del error contradice el validador. | Validar el formato explícitamente y devolver un 400 controlado; alinear el ejemplo con el contrato elegido. |
+| INC-002 | TC-033/034: 31 rechazos de un barcode que había funcionado en la misma campaña. | Respuesta inestable y mensaje de producto inexistente que no permite identificar la causa. | Revisar ejecuciones internas; distinguir producto ausente de error externo; ajustar tratamiento de errores y frecuencia de llamadas según el diagnóstico. |
+| OBS-001 | La URL `/webhook-test/` devolvió 404 sin escucha registrada. | No se podía ejecutar repetidamente por esa URL. | Se usó la ruta de producción local ya activa; no fue necesario modificar o activar el flujo. |
+
+## 9. Alcance no acreditado
+
+Esta campaña no demuestra cobertura exhaustiva. No se han probado de forma controlada todos los casos del plan original: importación en otra instancia, todos los campos ausentes desde la API, todas las variantes de `"null"`, las nueve combinaciones de clasificaciones, las cuatro entradas del Merge, fallos de credencial Groq ni interrupciones de red provocadas.
+
+Tampoco se ha comprobado la ausencia de llamadas externas en TC-035 mediante trazas internas, aunque la exportación sitúa la respuesta de entrada ausente antes de esos nodos. Los casos no ejecutados no forman parte del resumen de 20 casos y no se presentan como aprobados.
+
+## 10. Reproducción
+
+Se adjuntan dos comprobadores:
+
+- [verificar-snackcheck.cjs](../tests/verificar-snackcheck.cjs): ejecuta las 36 variantes sobre el código de la exportación indicada; no necesita n8n si se omite la URL opcional.
+- [verificar-http.cjs](../tests/verificar-http.cjs): ejecuta la campaña HTTP y guarda las respuestas. Su ejecución consume llamadas a los servicios del flujo; revisar primero las incidencias detectadas y los límites disponibles.
+
+Desde la raíz del repositorio, con Node.js disponible:
+
+```bash
+node tests/verificar-snackcheck.cjs workflows/SnackCheck.json
+node tests/verificar-http.cjs http://localhost:5678/webhook/nutrition-check
+```
+
+Los datos externos y la redacción del modelo pueden cambiar. Cada repetición genera evidencia con fecha nueva; debe interpretarse sin sobrescribir ni reinterpretar como nueva la evidencia de esta campaña.
+
+## 11. Conclusión de la campaña
+
+Las reglas de los dos nodos Code superaron las 36 variantes ejecutadas. El flujo publicado completó una consulta real con una recomendación coherente, y se verificaron las respuestas de entrada ausente y de producto inexistente.
+
+La campaña también confirmó el HTTP 500 para tipos de barcode incompatibles y detectó errores frecuentes al repetir consultas. Por tanto, queda acreditado el funcionamiento de los casos indicados, pero **no la robustez bajo carga ni una validación completa del flujo**. Las incidencias se mantienen abiertas y deben tratarse como resultados del ensayo, no como pruebas pendientes ni como correcciones ya realizadas.
+
