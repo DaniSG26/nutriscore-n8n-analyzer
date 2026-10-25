@@ -1,0 +1,981 @@
+{
+  "name": "SnackCheck",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nutrition-check",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "e7ef79a8-e4f9-437d-be63-6e5435ad7ac3",
+      "name": "Webhook",
+      "webhookId": "4035bf93-66f2-49b7-ad42-cc8c8938a955"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b97296fa-0889-4bdf-884d-8a2204914a92",
+              "leftValue": "={{ $json.body.barcode }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        224,
+        0
+      ],
+      "id": "80c1b7fa-191c-47f4-be8b-d26e72d1db7a",
+      "name": "Validar - Barcode existe y es un número"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "672bcfcc-9272-4092-a2cc-d2fe0764da53",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "object",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        928,
+        -96
+      ],
+      "id": "aff284d5-b247-45c5-ba90-1fdca3df3735",
+      "name": "Validar - Barcode existe en la BBDD"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0bec921e-677f-401f-8399-66faea40ba8f",
+              "name": "barcode",
+              "value": "={{ $json.body.barcode }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        480,
+        -96
+      ],
+      "id": "2fd530dc-0ddb-4062-a838-99210a17d884",
+      "name": "Guardar variable - Guardamos la variable barcode"
+    },
+    {
+      "parameters": {
+        "url": "=https://world.openfoodfacts.org/api/v2/product/{{$json.barcode}}.json?fields=product_name,brands,nutriscore_grade,nutriments",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        704,
+        -96
+      ],
+      "id": "9922e25b-57fd-4500-b471-df38aab16cd9",
+      "name": "API - Consultamos información de barcode",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        4160,
+        -208
+      ],
+      "id": "84418e3f-0d81-4577-aca1-66baaacea924",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "U0j1ioBlsTqipEx3",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const azucar = Number($json.sugar);\nconst sal = Number($json.salt);\nconst grasa = Number($json.fat);\n\n// Comprobar que los tres nutrientes tienen valores válidos\nif (\n  [azucar, sal, grasa].some(valor => !Number.isFinite(valor)) ||\n  [$json.sugar, $json.salt, $json.fat].some(\n    valor => valor === undefined || valor === null || valor === \"\"\n  ) ||\n  [azucar, sal, grasa].some(valor => valor < 0)\n) {\n  throw new Error(\"Faltan nutrientes o sus valores no son válidos\");\n}\n\n// Identificar nutrientes altos\nconst azucarAlto = azucar > 22.5;\nconst salAlta = sal > 1.5;\nconst grasaAlta = grasa > 17.5;\n\n// Contar cuántos nutrientes son altos (de 0 a 3)\nconst puntuacion = Number(azucarAlto) +\n                   Number(salAlta) +\n                   Number(grasaAlta);\n\n// Clasificar producto\nlet clasificacion;\nlet semaforo;\n\nif (puntuacion === 0) {\n  clasificacion = \"saludable\";\n  semaforo = \"🟢\";\n} else if (puntuacion === 1) {\n  clasificacion = \"moderado\";\n  semaforo = \"🟠\";\n} else {\n  clasificacion = \"no saludable\";\n  semaforo = \"🔴\";\n}\n\n// Devolver resultado\nreturn {\n  json: {\n    azucar,\n    sal,\n    grasa,\n    puntuacion,\n    clasificacion,\n    semaforo\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1808,
+        -384
+      ],
+      "id": "eb63cae2-1c79-4799-933d-2cd774aef3ff",
+      "name": "Calcular - Semáforo saludable"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ef5a4f03-606f-40fa-b15d-6b8a36eae2e7",
+              "name": "sugar",
+              "value": "={{ $json.product.nutriments.sugars_100g }}",
+              "type": "number"
+            },
+            {
+              "id": "cad46a04-0dda-4aa4-9d0e-04b25529e2b6",
+              "name": "salt",
+              "value": "={{ $json.product.nutriments.salt_100g }}",
+              "type": "number"
+            },
+            {
+              "id": "2226173a-42b0-424a-9636-f2062de79f89",
+              "name": "fat",
+              "value": "={{ $json.product.nutriments.fat_100g }}",
+              "type": "number"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1424,
+        -176
+      ],
+      "id": "aa407b04-0f21-42f0-b5dd-a03a3dfcb282",
+      "name": "Obtener - Valores nutricionales"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst nutriscore = String($('Obtener - Valores nutricionales').item.json.product.nutriscore_grade ?? \"\").trim().toLowerCase();\n\nlet clasificacionNutriScore = \"null\";\n\nif (nutriscore === \"a\" || nutriscore === \"b\") {\n  clasificacionNutriScore = \"saludable\";\n} else if (nutriscore === \"c\") {\n  clasificacionNutriScore = \"moderado\";\n} else if (nutriscore === \"d\" || nutriscore === \"e\") {\n  clasificacionNutriScore = \"no saludable\";\n}\n\nreturn {\n  json: {\n    ...$json,\n    clasificacionNutriScore\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2224,
+        -384
+      ],
+      "id": "3fa0905c-3652-4c47-8039-fe2fcfcbf725",
+      "name": "Calcular - Valor nutriScore"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"error\",\n  \"code\": \"BARCODE_NO_EXIST\",\n  \"message\": \"El código de barras es obligatorio.\",\n  \"example\": {\n    \"barcode\": \"8480000505460\"},\n  \"timestamp\": \"{{ $now.toISO() }}\"\n}\n",
+        "options": {
+          "responseCode": 400,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        464,
+        112
+      ],
+      "id": "df25229d-39ce-4160-b7e9-7b867b58e8cd",
+      "name": "Responder - Solicitud vacía"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Upps! Parece que el  producto no existe en nuestra base de datos.\nComprueba el código de barras o inténtalo con otro producto",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1424,
+        112
+      ],
+      "id": "6d3232d6-665c-4882-863e-553d74ec2675",
+      "name": "Responder - Código de barras no existe"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "cd3388eb-9fe3-484b-a6cf-b8b53ef58193",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1184,
+        -160
+      ],
+      "id": "54a77f19-acb6-4192-b087-f39f5576b4ca",
+      "name": "Comprobar - API devuelve datos válidos"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2f9bec34-e6c0-4d8a-8118-9b238560f671",
+              "leftValue": "={{ $json.sugar }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "32d6411a-ef0b-4d58-a263-b1530d67d279",
+              "leftValue": "={{ $json.salt }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "941c0b05-14ab-44a2-ae25-7ac3cb75eb49",
+              "leftValue": "={{ $json.fat }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "51814216-05a5-492d-8354-c5b4782f0c14",
+              "leftValue": "={{ $json.product.nutriscore_grade}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1600,
+        -176
+      ],
+      "id": "75e0b927-d651-4478-8d78-2d2fcca69567",
+      "name": "Comprobar - Existen todos los valores necesarios para comprobación"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Upps! Parece que no tengo los datos suficientes para valorar este producto.\n¡Prueba con otro!",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1808,
+        -80
+      ],
+      "id": "0ddd64e1-b877-43b1-b808-b562459d02d4",
+      "name": "Respuesta - Datos insuficientes"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "721b2892-d0e5-4783-81b5-ca008d28c1d7",
+              "name": "semaforoSaludable",
+              "value": "={{ $json.clasificacion }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2016,
+        -384
+      ],
+      "id": "0b1cf988-c19a-4dec-9477-79fd79a5a530",
+      "name": "Obtener - Dato del semáforo saludable"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "db809220-5471-4982-a41b-874bdfae09cd",
+              "name": "valorNutriScore",
+              "value": "={{ $json.clasificacionNutriScore }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2448,
+        -384
+      ],
+      "id": "5da954ca-daf7-4c0d-a61b-609ee88b06a0",
+      "name": "Obtener - Dato NutriScore"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "db48c791-ff47-4c73-aff8-16f8a1370a73",
+              "leftValue": "={{ $json.valorNutriScore }}",
+              "rightValue": "null",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2720,
+        -384
+      ],
+      "id": "2336c3c5-6368-490c-8127-f0fd3fabbbac",
+      "name": "Comprobar - ¿Tenemos dato de NutriScore?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9fd0ddb1-4972-4c5c-93d9-fa88aba777bd",
+              "name": "respuesta",
+              "value": "={{ $json.semaforoSaludable }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        3536,
+        -640
+      ],
+      "id": "b75b66ae-802e-4da3-bccf-dd6704f55fc6",
+      "name": "Establecer - Semáforo Saludable como respuesta"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ebdae61f-0435-4947-a3dc-3372ab388e43",
+              "leftValue": "={{ $json.valorNutriScore }}",
+              "rightValue": "saludable",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "e001114a-bf57-471e-b6fb-3d8654f7bb40",
+              "leftValue": "={{ $json.semaforoSaludable }}",
+              "rightValue": "saludable",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3040,
+        -320
+      ],
+      "id": "374a00fa-324a-4b36-bb1e-f13533f2dad4",
+      "name": "Comprobar - ¿Ambos datos son \"saludable\"?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "59edb1c3-414c-46b1-8063-22ea201b1c99",
+              "name": "respuesta",
+              "value": "saludable",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        3536,
+        -480
+      ],
+      "id": "c4ab6117-0e71-49cf-b54a-eb9de8406e89",
+      "name": "Establer - Saludable"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "bfda1f2c-29a1-4f99-a1b8-cbda2ad17eda",
+              "leftValue": "={{ $json.valorNutriScore }}",
+              "rightValue": "no saludable",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "41f1d35a-e1c0-4d30-b8cf-36585be64065",
+              "leftValue": "={{ $json.semaforoSaludable }}",
+              "rightValue": "no saludable",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3312,
+        -224
+      ],
+      "id": "41a285df-0f63-4bd3-85e5-2007944fe046",
+      "name": "Comprobar - ¿Ambos datos son NO saludable?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "97a6891e-f84c-4161-a9f5-f752ad581608",
+              "name": "respuesta",
+              "value": "no saludable",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        3536,
+        -320
+      ],
+      "id": "da11d679-3329-44e1-b8b6-e65c6f6a3f7f",
+      "name": "Establecer - No saludable"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "db3e6318-ed29-4545-a3f1-717441960ffa",
+              "name": "respuesta",
+              "value": "moderado",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        3536,
+        -128
+      ],
+      "id": "c036ba06-a867-4a3c-ac9e-cf3af0718323",
+      "name": "Establecer - Moderado"
+    },
+    {
+      "parameters": {
+        "numberInputs": 4
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3856,
+        -432
+      ],
+      "id": "7dee6582-0aab-48f8-b8e4-73b23a86302c",
+      "name": "Obtener - Respuesta"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Eres un asistente especializado en orientar a los consumidores sobre sus decisiones de compra de alimentos.\n\nRecibirás una clasificación nutricional de un producto, que puede tener uno de estos tres valores: \"saludable\", \"moderado\" o \"no saludable\".\nLa clasificacion de este producto es : {{ $json.respuesta }}\nTu tarea consiste en devolver un semáforo nutricional y una recomendación de compra amigable.\n\nREGLAS:\n1. Si la clasificación es \"saludable\":\n   - Semáforo: 🟢 VERDE\n   - Recomienda su compra como una buena opción nutricional.\n2. Si la clasificación es \"moderado\":\n   - Semáforo: 🟠 NARANJA\n   - Indica que puede comprarse, pero recomienda consumirlo con moderación.\n3. Si la clasificación es \"no saludable\":\n   - Semáforo: 🔴 ROJO\n   - Desaconseja su compra habitual y sugiere buscar una alternativa más saludable.\n4. Utiliza un tono cercano, positivo, claro y profesional.\n5. El mensaje debe ser breve: máximo 2 frases.\n6. No inventes información nutricional ni ingredientes.\n7. No cambies la clasificación recibida.\n8. Si recibes un valor distinto, indica que no puedes determinar la recomendación.\n\nFORMATO DE SALIDA (Markdown):\n\n[EMOJI] **[COLOR] — [CLASIFICACIÓN]**\n\n**Recomendación:** [Mensaje amigable sobre si comprar o no el producto].\n\nDevuelve únicamente el resultado, sin explicaciones adicionales.\n\n\n\n",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        4160,
+        -400
+      ],
+      "id": "92066830-4b7b-46a9-bbbf-dcba67b38a2a",
+      "name": "AI - Health Verfict"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.text }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        4544,
+        -400
+      ],
+      "id": "20f21477-f26a-4ad0-bbe4-7f7e8575551b",
+      "name": "Responder - Respuesta final"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar - Barcode existe y es un número",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar - Barcode existe y es un número": {
+      "main": [
+        [
+          {
+            "node": "Guardar variable - Guardamos la variable barcode",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder - Solicitud vacía",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar - Barcode existe en la BBDD": {
+      "main": [
+        [
+          {
+            "node": "Comprobar - API devuelve datos válidos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder - Código de barras no existe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar variable - Guardamos la variable barcode": {
+      "main": [
+        [
+          {
+            "node": "API - Consultamos información de barcode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "API - Consultamos información de barcode": {
+      "main": [
+        [
+          {
+            "node": "Validar - Barcode existe en la BBDD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI - Health Verfict",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular - Semáforo saludable": {
+      "main": [
+        [
+          {
+            "node": "Obtener - Dato del semáforo saludable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener - Valores nutricionales": {
+      "main": [
+        [
+          {
+            "node": "Comprobar - Existen todos los valores necesarios para comprobación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular - Valor nutriScore": {
+      "main": [
+        [
+          {
+            "node": "Obtener - Dato NutriScore",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comprobar - API devuelve datos válidos": {
+      "main": [
+        [
+          {
+            "node": "Obtener - Valores nutricionales",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder - Código de barras no existe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comprobar - Existen todos los valores necesarios para comprobación": {
+      "main": [
+        [
+          {
+            "node": "Calcular - Semáforo saludable",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta - Datos insuficientes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener - Dato del semáforo saludable": {
+      "main": [
+        [
+          {
+            "node": "Calcular - Valor nutriScore",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener - Dato NutriScore": {
+      "main": [
+        [
+          {
+            "node": "Comprobar - ¿Tenemos dato de NutriScore?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comprobar - ¿Tenemos dato de NutriScore?": {
+      "main": [
+        [
+          {
+            "node": "Establecer - Semáforo Saludable como respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Comprobar - ¿Ambos datos son \"saludable\"?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Establecer - Semáforo Saludable como respuesta": {
+      "main": [
+        [
+          {
+            "node": "Obtener - Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comprobar - ¿Ambos datos son \"saludable\"?": {
+      "main": [
+        [
+          {
+            "node": "Establer - Saludable",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Comprobar - ¿Ambos datos son NO saludable?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Establer - Saludable": {
+      "main": [
+        [
+          {
+            "node": "Obtener - Respuesta",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Comprobar - ¿Ambos datos son NO saludable?": {
+      "main": [
+        [
+          {
+            "node": "Establecer - No saludable",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Establecer - Moderado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Establecer - No saludable": {
+      "main": [
+        [
+          {
+            "node": "Obtener - Respuesta",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Establecer - Moderado": {
+      "main": [
+        [
+          {
+            "node": "Obtener - Respuesta",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Obtener - Respuesta": {
+      "main": [
+        [
+          {
+            "node": "AI - Health Verfict",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI - Health Verfict": {
+      "main": [
+        [
+          {
+            "node": "Responder - Respuesta final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "2340ebd8-75ea-4f6d-b7aa-b7ee44e2d14e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3f60787b35b5a1446fb0fcc0d3278adf3691a745ab538bbe7a91e67de5c375f0"
+  },
+  "nodeGroups": [],
+  "id": "oIqysaLgOomkIqOu",
+  "tags": []
+}
